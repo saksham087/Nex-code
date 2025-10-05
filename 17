@@ -1,23 +1,114 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Code, Users, Zap, Shield, ArrowRight } from 'lucide-react';
+import { Code, Users, Zap, ArrowRight, Sparkles, FolderOpen, Clock, Plus, Search } from 'lucide-react';
+
+const features = [
+  {
+    icon: <Code className="w-8 h-8 text-blue-400" />,
+    title: 'Intuitive Editor',
+    description: 'A powerful, Monaco-based editor that feels just like your favorite desktop IDE, right in your browser.',
+  },
+  {
+    icon: <Users className="w-8 h-8 text-purple-400" />,
+    title: 'Multiplayer-First',
+    description: 'Experience seamless, real-time collaboration with live cursors, shared terminals, and instant updates.',
+  },
+  {
+    icon: <Zap className="w-8 h-8 text-green-400" />,
+    title: 'Built for Speed',
+    description: 'A lightweight, performant platform that loads instantly and responds to every keystroke without delay.',
+  },
+];
+
+const MacbookMockup = () => (
+  <div className="relative w-full max-w-4xl mx-auto">
+    {/* Laptop lid */}
+    <div className="relative bg-neutral-800 rounded-t-2xl border-l border-r border-t border-neutral-700 p-2">
+      <div className="aspect-video w-full bg-black rounded-lg overflow-hidden border border-neutral-900">
+        {/* Mockup Content */}
+        <div className="w-full h-full bg-black p-4">
+          <div className="flex items-center justify-between border-b border-neutral-800 pb-2 mb-4">
+            <div className="text-lg font-bold text-white">NexCode</div>
+            <div className="w-8 h-8 bg-purple-500 rounded-full"></div>
+          </div>
+          <div className="mb-4">
+            <h1 className="text-2xl font-bold text-white">Your Projects</h1>
+          </div>
+          <div className="flex gap-4 mb-6">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+              <div className="w-full text-sm bg-neutral-900 border border-neutral-800 rounded-lg pl-9 pr-3 py-2 text-neutral-400">Search projects...</div>
+            </div>
+            <div className="flex items-center justify-center space-x-2 whitespace-nowrap px-4 py-2 bg-white text-black text-sm font-semibold rounded-lg">
+              <Plus className="w-4 h-4" />
+              <span>New Project</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
+              <div className="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center text-blue-400 mb-3">
+                <FolderOpen className="w-5 h-5" />
+              </div>
+              <h3 className="text-md font-semibold text-white mb-1">Frontend Redesign</h3>
+              <p className="text-neutral-400 text-xs mb-3 h-8 line-clamp-2">Overhauling the main customer-facing website with React and Tailwind.</p>
+            </div>
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
+              <div className="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center text-blue-400 mb-3">
+                <FolderOpen className="w-5 h-5" />
+              </div>
+              <h3 className="text-md font-semibold text-white mb-1">API Service</h3>
+              <p className="text-neutral-400 text-xs mb-3 h-8 line-clamp-2">Building a new GraphQL API for the mobile application.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {/* Laptop base */}
+    <div className="relative h-4 w-[110%] -translate-x-[5%] bg-neutral-900 rounded-b-2xl border-b border-l border-r border-neutral-700">
+      <div className="absolute top-1 left-1/2 -translate-x-1/2 w-20 h-1 bg-neutral-700 rounded-full" />
+    </div>
+  </div>
+);
 
 const LandingPage: React.FC = () => {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        ease: 'easeOut',
+      },
+    },
+  };
+
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-black text-white">
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-black text-white">
       <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-black">
-          <div className="absolute inset-0 animate-aurora rounded-full bg-[radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)]"></div>
-        </div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_500px_at_50%_200px,#3e33e633,transparent)]" />
       </div>
 
       <div className="relative z-10 flex flex-col min-h-screen">
         <nav className="py-5 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <Link to="/" className="text-2xl font-bold">NexCode</Link>
+            <Link to="/" className="text-2xl font-bold flex items-center gap-2">
+              <Sparkles className="w-6 h-6 text-purple-400" />
+              NexCode
+            </Link>
             <div className="flex items-center space-x-4">
-              <Link to="/sign-in" className="text-neutral-300 hover:text-white transition-colors">
+              <Link to="/sign-in" className="text-neutral-300 hover:text-white transition-colors hidden sm:block">
                 Sign In
               </Link>
               <Link to="/sign-up" className="btn-primary px-4 py-2">
@@ -27,44 +118,76 @@ const LandingPage: React.FC = () => {
           </div>
         </nav>
 
-        <main className="flex-grow flex items-center">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
+        <main className="flex-grow flex flex-col items-center justify-center pt-20 pb-20 md:pb-32">
+          <motion.div
+            className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.h1
+              className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-300"
+              variants={itemVariants}
             >
-              <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6">
-                Where Development Clicks.
-              </h1>
-              <p className="text-lg md:text-xl text-neutral-400 mb-10 max-w-3xl mx-auto">
-                The ultimate real-time collaborative code editor, designed for teams that move fast. Code, collaborate, and create, all in one place.
-              </p>
+              Where Development Clicks.
+            </motion.h1>
+            <motion.p
+              className="text-lg md:text-xl text-neutral-400 mb-10 max-w-3xl mx-auto"
+              variants={itemVariants}
+            >
+              The ultimate real-time collaborative code editor, designed for teams that move fast. Code, collaborate, and create, all in one place.
+            </motion.p>
+            <motion.div variants={itemVariants}>
               <Link
                 to="/sign-up"
-                className="inline-flex items-center justify-center space-x-2 text-lg font-semibold bg-white text-black px-8 py-4 rounded-lg transition-transform hover:scale-105"
+                className="inline-flex items-center justify-center space-x-2 text-lg font-semibold bg-white text-black px-8 py-4 rounded-lg transition-transform hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.2)]"
               >
                 <span>Get Started for Free</span>
                 <ArrowRight className="w-5 h-5" />
               </Link>
             </motion.div>
-
+            
             <motion.div
-              initial={{ opacity: 0, y: 40, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
               className="mt-20"
+              variants={itemVariants}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: 0.8, duration: 0.8 }}
             >
-              <div className="relative rounded-2xl overflow-hidden border border-neutral-800 shadow-2xl shadow-blue-500/10 bg-neutral-950/50 p-2">
-                <img
-                  src="https://i.ibb.co/L6V2xN3/editor-mock.png"
-                  alt="NexCode Editor Interface"
-                  className="w-full h-auto rounded-lg"
-                />
-              </div>
+              <MacbookMockup />
             </motion.div>
-          </div>
+          </motion.div>
         </main>
+
+        <section className="py-20">
+          <motion.div
+            className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={containerVariants}
+          >
+            <motion.h2 variants={itemVariants} className="text-4xl font-bold text-center mb-12">
+              Everything you need. <span className="text-neutral-400">All in one place.</span>
+            </motion.h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {features.map((feature, index) => (
+                <motion.div key={index} variants={itemVariants}>
+                  <div className="relative group h-full">
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-blue-500 rounded-xl blur opacity-20 group-hover:opacity-75 transition duration-500"></div>
+                    <div className="relative h-full bg-black border border-neutral-800 rounded-xl p-6 flex flex-col items-start">
+                      <div className="bg-neutral-900 p-3 rounded-lg mb-4 border border-neutral-700">
+                        {feature.icon}
+                      </div>
+                      <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+                      <p className="text-neutral-400">{feature.description}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </section>
 
         <footer className="py-8 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto text-center text-neutral-500">
