@@ -1,0 +1,58 @@
+import { query, mutation } from "./_generated/server";
+import { v } from "convex/values";
+
+export const getByProject = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+    // You might want to add an authorization check here
+    return await ctx.db
+      .query("files")
+      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
+      .collect();
+  },
+});
+
+export const create = mutation({
+  args: { name: v.string(), projectId: v.id("projects") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+    
+    const language = args.name.split('.').pop() || 'plaintext';
+
+    return await ctx.db.insert("files", {
+      name: args.name,
+      projectId: args.projectId,
+      language: language,
+      content: "",
+    });
+  },
+});
+
+export const remove = mutation({
+  args: { id: v.id("files") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+    await ctx.db.delete(args.id);
+  },
+});
+
+export const updateContent = mutation({
+  args: { id: v.id("files"), content: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+    await ctx.db.patch(args.id, { content: args.content });
+  },
+});

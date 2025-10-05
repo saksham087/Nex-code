@@ -1,0 +1,42 @@
+import { create } from 'zustand';
+import { FileItem } from '../convex/schema';
+
+interface ProjectUIState {
+  currentFile: FileItem | null;
+  openFiles: FileItem[];
+  setCurrentFile: (file: FileItem) => void;
+  openFile: (file: FileItem) => void;
+  closeFile: (fileId: string) => void;
+  setOpenFiles: (files: FileItem[]) => void;
+}
+
+export const useProjectUIStore = create<ProjectUIState>((set, get) => ({
+  currentFile: null,
+  openFiles: [],
+  
+  setCurrentFile: (file: FileItem) => {
+    set({ currentFile: file });
+  },
+  
+  openFile: (file: FileItem) => {
+    const { openFiles } = get();
+    if (!openFiles.find((f) => f._id === file._id)) {
+      set({ openFiles: [...openFiles, file], currentFile: file });
+    } else {
+      set({ currentFile: file });
+    }
+  },
+  
+  closeFile: (fileId: string) => {
+    const { openFiles, currentFile } = get();
+    const newOpenFiles = openFiles.filter((f) => f._id !== fileId);
+    set({
+      openFiles: newOpenFiles,
+      currentFile: currentFile?._id === fileId ? newOpenFiles[newOpenFiles.length - 1] || null : currentFile,
+    });
+  },
+
+  setOpenFiles: (files: FileItem[]) => {
+    set({ openFiles: files });
+  }
+}));

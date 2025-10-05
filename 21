@@ -1,0 +1,14 @@
+import React from 'react';
+import { SignIn } from '@clerk/clerk-react';
+import { Link } from 'react-router-dom';
+
+const SignInPage: React.FC = () => {
+  return (
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
+      <Link to="/" className="text-3xl font-bold mb-8 text-white">NexCode</Link>
+      <SignIn path="/sign-in" routing="path" signUpUrl="/sign-up" />
+    </div>
+  );
+};
+
+export default SignInPage;

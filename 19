@@ -1,0 +1,232 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import Editor from '@monaco-editor/react';
+import { motion } from 'framer-motion';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../convex/_generated/api';
+import { Id } from '../convex/_generated/dataModel';
+import { FileItem as FileItemType } from '../convex/schema';
+import { useProjectUIStore } from '../store/projectStore';
+import { UserButton } from '@clerk/clerk-react';
+import {
+  ArrowLeft, Play, Save, Users, Plus, X,
+  FileText, Folder, ChevronRight, ChevronDown, Trash2, Loader2
+} from 'lucide-react';
+
+// Debounce hook
+function useDebounce(callback: (...args: any[]) => void, delay: number) {
+  const timeoutRef = React.useRef<number | null>(null);
+  return (...args: any[]) => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = window.setTimeout(() => {
+      callback(...args);
+    }, delay);
+  };
+}
+
+const ProjectPage: React.FC = () => {
+  const { projectId } = useParams<{ projectId: Id<"projects"> }>();
+  const navigate = useNavigate();
+  
+  // Zustand store for UI state
+  const { currentFile, openFiles, setCurrentFile, openFile, closeFile, setOpenFiles } = useProjectUIStore();
+
+  // Convex queries and mutations
+  const project = useQuery(api.projects.getById, projectId ? { id: projectId } : 'skip');
+  const files = useQuery(api.files.getByProject, projectId ? { projectId } : 'skip');
+  const updateFileContent = useMutation(api.files.updateContent);
+  const createFile = useMutation(api.files.create);
+  const deleteFile = useMutation(api.files.remove);
+
+  const [consoleOutput, setConsoleOutput] = useState<string[]>([]);
+  const [showNewFileModal, setShowNewFileModal] = useState(false);
+  const [newFileName, setNewFileName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Sync open files with fetched data
+  useEffect(() => {
+    if (files && openFiles.length > 0) {
+      const updatedOpenFiles = openFiles.map(of => files.find(f => f._id === of._id) || of).filter(Boolean) as FileItemType[];
+      setOpenFiles(updatedOpenFiles);
+      if (currentFile) {
+        const updatedCurrentFile = updatedOpenFiles.find(f => f._id === currentFile._id);
+        if (updatedCurrentFile) setCurrentFile(updatedCurrentFile);
+      }
+    }
+  }, [files]);
+
+
+  const debouncedUpdate = useCallback(useDebounce((fileId: Id<"files">, content: string) => {
+    updateFileContent({ id: fileId, content });
+    setIsSaving(false);
+  }, 1000), []);
+
+  const handleEditorChange = (value: string | undefined) => {
+    if (currentFile && value !== undefined) {
+      setIsSaving(true);
+      // Optimistic update in UI store
+      setCurrentFile({ ...currentFile, content: value });
+      debouncedUpdate(currentFile._id, value);
+    }
+  };
+  
+  const handleRunCode = () => { /* ... implementation ... */ };
+  
+  const handleCreateFile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newFileName.trim() && projectId) {
+      await createFile({ name: newFileName, projectId });
+      setNewFileName('');
+      setShowNewFileModal(false);
+    }
+  };
+
+  const renderFileTree = (items: FileItemType[]) => {
+    return items.map((file) => (
+      <div key={file._id}>
+        <div
+          className={`flex items-center space-x-2 px-3 py-2 hover:bg-neutral-800 rounded-lg cursor-pointer group ${
+            currentFile?._id === file._id ? 'bg-neutral-800' : ''
+          }`}
+          onClick={() => openFile(file)}
+        >
+          <FileText className="w-4 h-4 text-neutral-400" />
+          <span className="flex-1 text-sm text-neutral-300 truncate">{file.name}</span>
+          <button
+            onClick={(e) => { e.stopPropagation(); deleteFile({ id: file._id }); }}
+            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-neutral-700 rounded"
+          >
+            <Trash2 className="w-3 h-3 text-red-500" />
+          </button>
+        </div>
+      </div>
+    ));
+  };
+
+  if (project === undefined || files === undefined) {
+    return <div className="h-screen bg-black flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin"/></div>;
+  }
+  if (project === null) {
+    navigate('/dashboard');
+    return null;
+  }
+
+  return (
+    <div className="h-screen flex flex-col bg-black">
+      <div className="bg-neutral-950 border-b border-neutral-800 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <button onClick={() => navigate('/dashboard')} className="p-2 hover:bg-neutral-800 rounded-lg">
+            <ArrowLeft className="w-5 h-5 text-neutral-400" />
+          </button>
+          <div>
+            <h1 className="text-lg font-semibold text-white">{project.name}</h1>
+          </div>
+          {isSaving && <Loader2 className="w-4 h-4 animate-spin text-neutral-400"/>}
+        </div>
+        <div className="flex items-center space-x-3">
+          <button className="btn-secondary flex items-center space-x-2 text-sm py-2">
+            <Users className="w-4 h-4" /> <span>Share</span>
+          </button>
+          <button onClick={handleRunCode} className="btn-primary flex items-center space-x-2 text-sm py-2">
+            <Play className="w-4 h-4" /> <span>Run</span>
+          </button>
+          <UserButton afterSignOutUrl="/" />
+        </div>
+      </div>
+
+      <div className="flex flex-1 overflow-hidden">
+        <div className="w-64 bg-neutral-950 border-r border-neutral-800 flex flex-col">
+          <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-neutral-300">Files</h2>
+            <button onClick={() => setShowNewFileModal(true)} className="p-1 hover:bg-neutral-800 rounded">
+              <Plus className="w-4 h-4 text-neutral-400" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-2">{renderFileTree(files)}</div>
+        </div>
+
+        <div className="flex-1 flex flex-col">
+          <div className="bg-neutral-950 border-b border-neutral-800 flex items-center overflow-x-auto custom-scrollbar">
+            {openFiles.map((file) => (
+              <div
+                key={file._id}
+                className={`flex items-center space-x-2 px-4 py-2 border-b-2 cursor-pointer transition-colors whitespace-nowrap ${
+                  currentFile?._id === file._id ? 'border-blue-500 bg-black' : 'border-transparent hover:bg-neutral-900'
+                }`}
+                onClick={() => setCurrentFile(file)}
+              >
+                <FileText className="w-4 h-4 text-neutral-400" />
+                <span className="text-sm text-neutral-300">{file.name}</span>
+                <button onClick={(e) => { e.stopPropagation(); closeFile(file._id); }} className="p-1 hover:bg-neutral-700 rounded">
+                  <X className="w-3 h-3 text-neutral-500" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex-1 bg-[#1e1e1e]">
+            {currentFile ? (
+              <Editor
+                height="100%"
+                language={currentFile.language}
+                value={currentFile.content}
+                onChange={handleEditorChange}
+                theme="vs-dark"
+                path={currentFile._id}
+                options={{ fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false, automaticLayout: true, tabSize: 2, wordWrap: 'on' }}
+              />
+            ) : (
+              <div className="h-full flex items-center justify-center text-neutral-500">
+                <div className="text-center">
+                  <FileText className="w-16 h-16 mx-auto mb-4 text-neutral-700" />
+                  <p>Select a file to start editing</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="h-48 bg-neutral-950 border-t border-neutral-800 flex flex-col">
+            <div className="px-4 py-2 border-b border-neutral-800 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-neutral-300">Console</h3>
+              <button onClick={() => setConsoleOutput([])} className="text-xs text-neutral-500 hover:text-neutral-300">Clear</button>
+            </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 font-mono text-xs text-neutral-400">
+              {consoleOutput.length > 0 ? consoleOutput.map((l, i) => <div key={i}>{l}</div>) : "Console output will appear here..."}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {showNewFileModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-neutral-950 border border-neutral-800 rounded-xl p-6 max-w-md w-full"
+          >
+            <h2 className="text-2xl font-bold text-white mb-6">Create New File</h2>
+            <form onSubmit={handleCreateFile} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-2">File Name</label>
+                <input
+                  type="text"
+                  value={newFileName}
+                  onChange={(e) => setNewFileName(e.target.value)}
+                  className="input-field"
+                  placeholder="example.js"
+                  required
+                />
+              </div>
+              <div className="flex space-x-3 pt-4">
+                <button type="submit" className="flex-1 btn-primary">Create File</button>
+                <button type="button" onClick={() => setShowNewFileModal(false)} className="flex-1 btn-secondary">Cancel</button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ProjectPage;

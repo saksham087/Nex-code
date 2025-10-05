@@ -1,0 +1,31 @@
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+
+export interface FileItem {
+  _id: string;
+  _creationTime: number;
+  name: string;
+  language: string;
+  content: string;
+  projectId: string;
+}
+
+export default defineSchema({
+  projects: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    userId: v.string(),
+  }).index("by_userId", ["userId"]),
+
+  files: defineTable({
+    name: v.string(),
+    language: v.string(),
+    content: v.string(),
+    projectId: v.id("projects"),
+  }).index("by_projectId", ["projectId"]),
+
+  users: defineTable({
+    name: v.string(),
+    tokenIdentifier: v.string(),
+  }).index("by_token", ["tokenIdentifier"]),
+});

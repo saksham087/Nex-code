@@ -1,0 +1,196 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { useUser, UserButton } from '@clerk/clerk-react';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../convex/_generated/api';
+import { 
+  Plus, Search, FolderOpen, Clock, Trash2, Code, Loader2 
+} from 'lucide-react';
+
+const DashboardPage: React.FC = () => {
+  const { user } = useUser();
+  const navigate = useNavigate();
+  
+  const projects = useQuery(api.projects.getForUser);
+  const createProject = useMutation(api.projects.create);
+  const deleteProject = useMutation(api.projects.remove);
+
+  const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectDesc, setNewProjectDesc] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleCreateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newProjectName.trim() && !isCreating) {
+      setIsCreating(true);
+      try {
+        await createProject({ name: newProjectName, description: newProjectDesc });
+        setNewProjectName('');
+        setNewProjectDesc('');
+        setShowNewProjectModal(false);
+      } catch (error) {
+        console.error("Failed to create project:", error);
+      } finally {
+        setIsCreating(false);
+      }
+    }
+  };
+
+  const filteredProjects = projects?.filter(project =>
+    project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    project.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="min-h-screen bg-black">
+      <nav className="bg-neutral-950 border-b border-neutral-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="text-2xl font-bold">NexCode</div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-neutral-300 hidden sm:block">{user?.primaryEmailAddress?.emailAddress}</span>
+              <UserButton afterSignOutUrl="/" />
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2">Your Projects</h1>
+          <p className="text-neutral-400">Manage and collaborate on your coding projects</p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-4 mb-8">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search projects..."
+              className="w-full input-field pl-11"
+            />
+          </div>
+          <button
+            onClick={() => setShowNewProjectModal(true)}
+            className="btn-primary flex items-center justify-center space-x-2 whitespace-nowrap"
+          >
+            <Plus className="w-5 h-5" />
+            <span>New Project</span>
+          </button>
+        </div>
+
+        {projects === undefined && (
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="w-8 h-8 text-neutral-500 animate-spin" />
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredProjects?.map((project, index) => (
+            <motion.div
+              key={project._id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+              className="card group cursor-pointer"
+              onClick={() => navigate(`/project/${project._id}`)}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-12 h-12 bg-neutral-900 rounded-lg flex items-center justify-center text-blue-400">
+                  <FolderOpen className="w-6 h-6" />
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteProject({ id: project._id });
+                  }}
+                  className="p-2 hover:bg-neutral-800 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <Trash2 className="w-4 h-4 text-red-500" />
+                </button>
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">{project.name}</h3>
+              <p className="text-neutral-400 text-sm mb-4 h-10 line-clamp-2">{project.description}</p>
+              <div className="flex items-center text-xs text-neutral-500 space-x-4">
+                <div className="flex items-center space-x-1">
+                  <Clock className="w-4 h-4" />
+                  <span>{new Date(project._creationTime).toLocaleDateString()}</span>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {projects && filteredProjects?.length === 0 && (
+          <div className="text-center py-20">
+            <FolderOpen className="w-16 h-16 text-neutral-700 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-neutral-400 mb-2">No projects found</h3>
+            <p className="text-neutral-500 mb-6">Create your first project to get started</p>
+            <button onClick={() => setShowNewProjectModal(true)} className="btn-primary">
+              <Plus className="w-5 h-5 inline mr-2" />
+              Create Project
+            </button>
+          </div>
+        )}
+      </div>
+
+      {showNewProjectModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-neutral-950 border border-neutral-800 rounded-xl p-6 max-w-md w-full"
+          >
+            <h2 className="text-2xl font-bold text-white mb-6">Create New Project</h2>
+            <form onSubmit={handleCreateProject} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-2">
+                  Project Name
+                </label>
+                <input
+                  type="text"
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  className="input-field"
+                  placeholder="My Awesome Project"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={newProjectDesc}
+                  onChange={(e) => setNewProjectDesc(e.target.value)}
+                  className="input-field resize-none"
+                  rows={3}
+                  placeholder="Brief description of your project..."
+                />
+              </div>
+              <div className="flex space-x-3 pt-4">
+                <button type="submit" className="flex-1 btn-primary" disabled={isCreating}>
+                  {isCreating ? <Loader2 className="w-5 h-5 mx-auto animate-spin" /> : 'Create Project'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowNewProjectModal(false)}
+                  className="flex-1 btn-secondary"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default DashboardPage;

@@ -1,0 +1,96 @@
+import { query, mutation } from "./_generated/server";
+import { v } from "convex/values";
+
+export const getForUser = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Called getForUser without authentication");
+    }
+
+    return await ctx.db
+      .query("projects")
+      .withIndex("by_userId", (q) => q.eq("userId", identity.subject))
+      .order("desc")
+      .collect();
+  },
+});
+
+export const getById = query({
+  args: { id: v.id("projects") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+    const project = await ctx.db.get(args.id);
+    if (!project || project.userId !== identity.subject) {
+      return null;
+    }
+    return project;
+  },
+});
+
+export const create = mutation({
+  args: { name: v.string(), description: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Called create without authentication");
+    }
+
+    const projectId = await ctx.db.insert("projects", {
+      name: args.name,
+      description: args.description,
+      userId: identity.subject,
+    });
+    
+    // Create default files
+    await ctx.db.insert("files", {
+      name: "index.html",
+      language: "html",
+      content: `<!DOCTYPE html>
+<html>
+  <head>
+    <title>${args.name}</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <h1>Welcome to ${args.name}</h1>
+    <script src="script.js"></script>
+  </body>
+</html>`,
+      projectId,
+    });
+
+    await ctx.db.insert("files", {
+      name: "style.css",
+      language: "css",
+      content: `body { font-family: sans-serif; }`,
+      projectId,
+    });
+
+    await ctx.db.insert("files", {
+      name: "script.js",
+      language: "javascript",
+      content: `console.log("Hello from ${args.name}!");`,
+      projectId,
+    });
+
+    return projectId;
+  },
+});
+
+export const remove = mutation({
+  args: { id: v.id("projects") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    // You might want to delete associated files as well
+    await ctx.db.delete(args.id);
+  },
+});
